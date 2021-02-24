@@ -1,0 +1,305 @@
+---
+title: 'SDGB-7844: Homework #5 - Hypothesis Testing & Confidence Intervals'
+author: "Ran Tian"
+fordham_id_number: A17684252
+fordham_email: rtian12@fordham.edu
+date: "Dec 10 2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Two-Sample Hypothesis Test for Proportions
+
+An online men's clothing retailer has developed a testing framework for video advertising on YouTube in order to test the effectiveness of the ads on influencing individuals to purchase from their website.
+
+Over the course of 30 days, 600,000 consumers were reached on YouTube.  Half of the individuals reached with ads on YouTube were served Public Service Announcement ads, while the other half were served ads for the retailer.  
+
+Incrementality testing, also referred to as “Uplift Modeling” or “Incremental Sales Lift”, is a test that measures the impact of a single variable on an individual’s behavior. For digital display or video marketing, it is most commonly used to measure the impact of a branded digital ad (Test Group) against a Public Service Announcement (PSA) ad (Control Group). The lift is measured as the percent difference between the two.
+
+Incremental lift indicates the impact of a particular (digital) advertising tactic on sales – the holy grail of advertising. It is possible to calculate but incremental testing is expensive (budget must still be spent on PSA placebo ads) and subject to many pitfalls unless executed carefully.  For the purposes of this assignment we will assume that all individuals were not exposed to any other advertising for the retailer during the 30 day testing period.
+
+The goal of our test is to determine whether the conversion rate of the test group is different than the conversion rate of our control group.  Conversion rate in this case is defined as $$\textrm{Conversion Rate} = \Bigg(\frac{ \textrm{Individuals in Group Who Purchased}}{\textrm{Total Individuals in Group}}\Bigg)$$
+
+Our hypothesis will test whether the difference in conversion rate or proportion for the test group and control group is statistically significant when $\alpha$ = 0.01.$$H_0 : p_{test} - p_{control} = 0$$ $$H_a : p_{test} - p_{control} \neq 0$$
+
+The data we will be using for the following exercises is __test_control.csv__.  This data represents a simple random sample of 15,000 individuals served PSA ads and 15,000 individuals served a branded digital video ads.  The data also contains an indicator for whether an individual purchased from our retailer after viewing the ad.
+
+1. What variables are available in our data set?  List out the column names and describe the data type of each variable.
+```{r}
+df = read.csv("test_control.csv")
+summary(df)
+str(df)
+```
+
+
+2. How are our test and control samples defined in our data set?
+
+In column named "exposed", there are two different value which define the test and control group of the samples.
+
+3. What proportion of individuals from the test group purchased on the retailer's website after viewing an ad?  What proportion of individuals from the control group purchased on the retailer's website after viewing an ad?
+
+```{r}
+#library(dplyr)
+df_control = subset(df,exposed=="Control Group (PSA)")
+df_test = subset(df,exposed=="Test Group (Exposed)")
+
+# For test group
+table(df_test$purchased)
+#     0     1 
+#  14819   181 
+181/14819
+
+# For control group
+table(df_control$purchased)
+#     0     1 
+#  14879   121 
+121/14879
+```
+
+
+4. For each of the variables [$gender$, $age$, $income$] create a bar plot to explore the distribution of demographic information in our samples. 
+
+```{r}
+# For gender
+matrix_gender = t(as.matrix(table(df[,3])))
+barplot(matrix_gender,xlab="Gender", ylab="Frequency", 
+        main="Frequencies for Gender", col="blue4")
+```
+
+```{r}
+# For age
+matrix_age = t(as.matrix(table(df[,4])))
+barplot(matrix_age,xlab="Age", ylab="Frequency", 
+        main="Frequencies for Age", col="red4")
+```
+
+```{r}
+# For income
+matrix_income = t(as.matrix(table(df[,5])))
+barplot(matrix_income,xlab="Income", ylab="Frequency", 
+        main="Frequencies for Income", col="green4")
+```
+
+
+5.  Create a figure with two bar plots (one for the test group and one for the control group) for $age$.  Describe the difference in the distribution between the test and control groups. Compare the percentage of each category between our test and control groups.
+
+```{r}
+matrix_age_test = t(as.matrix(table(df_test[,4])))
+matrix_age_control = t(as.matrix(table(df_control[,4])))
+
+par(mfrow=c(1,2))
+barplot(matrix_age_test,xlab="Age", ylab="Frequency", 
+        main="Frequencies for Age \n Test Group", col="azure4")
+barplot(matrix_age_control,xlab="Age", ylab="Frequency", 
+        main="Frequencies for Age \n Control Group", col="coral")
+
+
+
+df5 = as.data.frame(array(0,dim=c(2,5)))
+
+for (i in 1:5){
+  df5[1,i] = matrix_age_test[i]/15000
+}
+for (i in 1:5){
+  df5[2,i] = matrix_age_control[i]/15000
+}
+
+colnames(df5) = c("18 - 25","25 - 34","35 - 50","51 - 65","65+")
+rownames(df5) = c("Test Group","Control Group")
+df5
+
+# Compared with the test group, the control group had more young people (18-34).
+```
+
+
+6.  Create a figure with two bar plots (one for the test group and one for the control group) for $gender$.  Describe the difference in the distribution between the test and control groups. Add the percentage of each category to your plots.  Why might this variable be important to our analysis? 
+
+```{r}
+# don't forget to answer the last question in plain text after your code and plots - not as a comment.
+matrix_gender_test = t(as.matrix(table(df_test[,3])))
+matrix_gender_control = t(as.matrix(table(df_control[,3])))
+
+df6 = as.data.frame(array(0,dim=c(2,2)))
+
+for (i in 1:2){
+  df6[1,i] = matrix_gender_test[i]/15000
+}
+for (i in 1:2){
+  df6[2,i] = matrix_gender_control[i]/15000
+}
+
+par(mfrow=c(1,2))
+barplot(matrix_gender_test,xlab="Gender", ylab="Frequency", 
+        main="Frequencies for Gender \n Test Group", col="bisque4")
+text(0.7,1000, round(df6[1,1],4))
+text(1.9,1000, round(df6[1,2],4))
+
+barplot(matrix_gender_control,xlab="Gender", ylab="Frequency", 
+        main="Frequencies for Gender \n Control Group", col="cornsilk")
+text(0.7,1000, round(df6[2,1],4))
+text(1.9,1000, round(df6[2,2],4))
+```
+
+
+7.  Create a figure with two bar plots (one for the test group and one for the control group) for $income$.  Describe the difference in the distribution between the test and control groups. Compare the percentage of each category between our test and control groups.
+
+```{r}
+matrix_income_test = t(as.matrix(table(df_test[,5])))
+matrix_income_control = t(as.matrix(table(df_control[,5])))
+
+par(mfrow=c(1,2))
+barplot(matrix_income_test,xlab="Income", ylab="Frequency", 
+        main="Frequencies for Income \n Test Group", col="pink4")
+barplot(matrix_income_control,xlab="Income", ylab="Frequency", 
+        main="Frequencies for Income \n Control Group", col="cyan4")
+
+
+df7 = as.data.frame(array(0,dim=c(2,5)))
+
+for (i in 1:5){
+  df7[1,i] = matrix_income_test[i]/15000
+}
+for (i in 1:5){
+  df7[2,i] = matrix_income_control[i]/15000
+}
+
+colnames(df7) = c("$0 - $25,000","$25,000 - $50,000","$50,001 - $75,000","$75,001 - $100,000","Greater than $100,000")
+rownames(df7) = c("Test Group","Control Group")
+df7
+```
+
+
+8.  How might the differences in the distributions of the categorical variables analyzed in #5 - #7 impact our analysis?  Is it possible that our two samples may represent different types of shoppers?
+
+
+Compared with the control group, the test group has more middle-aged and elderly people (over 35 years old), and they have more income. This may make the test group more likely to purchase, because they have enough money. 
+It is possible that two samples may represent different types of shoppers.
+
+
+#### Hypothesis Test
+
+9.  What is the difference in the conversion rate for the test and control groups?
+
+```{r}
+matrix_purchased_test = t(as.matrix(table(df_test$purchased)))
+matrix_purchased_control = t(as.matrix(table(df_control$purchased)))
+
+df9 = as.data.frame(array(0,dim=c(2,2)))
+
+for (i in 1:2){
+  df9[1,i] = matrix_purchased_test[i]/15000
+}
+for (i in 1:2){
+  df9[2,i] = matrix_purchased_control[i]/15000
+}
+
+colnames(df9) = c("Not Purchased","Purchased")
+rownames(df9) = c("Test Group","Control Group")
+df9
+```
+
+
+The confidence interval for the difference between two proportions (when n > 30) is defined as $$p_{test} - p_{control} \pm z_{\alpha/2}\sqrt{\frac{p_{test} \times (1-p_{test})}{n_{test}}+  \frac{p_{control} \times (1-p_{control})}{n_{control}} }$$ 
+
+10.  Using the equation above, write a function to calculate the confidence interval for the difference between two proportions.  Your function should include three arguments: p1, p2, n1, n2 and Z.  Your function should return the confidence interval for the difference in two proportions at a given confidence level (in our example, Z = 2.575 when $\alpha$ = 0.01)  Round your results to the first five decimal places.
+
+```{r}
+ci = function(p1 ,p2, n1, n2, Z){
+  v = Z * sqrt(p1*(1-p1)/n1 + p2*(1-p2)/n2)
+  upper_bound = p1-p2+v
+  upper_bound = round(upper_bound,5)
+  lower_bound = p1-p2-v
+  lower_bound = round(lower_bound,5)
+  interval = list(upper_bound,lower_bound)
+  return(interval)
+}
+```
+
+
+11.  Calculate the confidence interval for the difference between the conversion rates for our test and control groups when $\alpha$ = 0.01 (Z = 2.575) using your function.  Does this confidence interval include zero?  What are the implications for the difference between two means when the confidence interval does not include zero?
+
+```{r}
+# don't forget to answer the last question in plain text after your code - not as a comment.
+pp1 = df9[1,2]
+pp2 = df9[2,2]
+ci(pp1,pp2,15000,15000,2.575)
+# It does not include zero
+
+# That means that the conversion rate of the test group is different than the conversion rate of our control group.
+# The ads is effective.
+```
+
+
+12.  Similar to the ```t.test()``` function in R, the ```prop.test()``` function can be used for testing the null hypothesis that the proportions (probabilities of success) in several groups are the same, or that they equal certain given values.  A chi-square test for equality of two proportions is exactly the same test as a z-test (chi-squared distribution with one degree of freedom is just that of a normal deviate, squared). What are the arguments for the function ```prop.test()```?
+
+```{r}
+# don't forget to answer the last question in plain text after your code - not as a comment.
+
+?prop.test
+
+# x	
+# a vector of counts of successes, a one-dimensional table with two entries, or a two-dimensional table (or matrix) with 2 columns, giving the counts of successes and failures, respectively.
+
+# n	
+# a vector of counts of trials; ignored if x is a matrix or a table.
+
+# p	
+# a vector of probabilities of success. The length of p must be the same as the number of groups specified by x, and its elements must be greater than 0 and less than 1.
+
+# alternative	
+# a character string specifying the alternative hypothesis, must be one of "two.sided" (default), "greater" or "less". You can specify just the initial letter. Only used for testing the null that a single proportion equals a given value, or that two proportions are equal; ignored otherwise.
+
+# conf.level	
+# confidence level of the returned confidence interval. Must be a single number between 0 and 1. Only used when testing the null that a single proportion equals a given value, or that two proportions are equal; ignored otherwise.
+
+# correct	
+# a logical indicating whether Yates' continuity correction should be applied where possible.
+```
+
+
+13.  Noting that the arguments ```x``` and ```n``` require vectors of values, use the ```prop.test()``` function to test our hypothesis that there is a statistically significant difference between the conversion rates of our test and control groups.  
+
+```{r}
+matrix_all = rbind(matrix_purchased_test,matrix_purchased_control)
+rownames(matrix_all) = c('Test Group','Control Group')
+colnames(matrix_all) = c('Not Purchased','Purchased')
+matrix_all
+prop.test(matrix_all)
+```
+
+
+14.  Interpet each output of ```prop.test```.  Explain your p-value in the context of our hypothesis.  Is the difference in the conversion rates for the test and control groups statistically significant?
+
+p-value = 0.0006442, which is less than 0.01
+There is statistically significant difference in conversion rate or proportion for the test group and control group.
+
+
+15.  Use the function ```pchisq(x, df=1)``` to try to understand the __X-squared__ score value in the output of ```prop.test()```.  What do the "p" functions for distributions calculate in R?  Subtract the value calculated using ```pchisq``` from 1.  What does this value represent?
+
+```{r}
+# don't forget to answer the last question in plain text after your code - not as a comment.
+Xsquared = 11.644
+chi = pchisq(Xsquared,df=1)
+chi
+pvalue = 0.0006442
+
+chi+pvalue
+# Equal to 1
+
+# pchisq calculate the cumulative distribution function which is the probability of difference between two groups.
+```
+
+
+#### Conclusion
+
+16.  In a few sentences, describe your interpretation of the results we found in this assignment.  How might the demographic data we observed for our test and control groups impact the difference in the two conversion rates?  Do you still believe that the results of our hypothesis test is valid?  Justify your answer.
+
+The video advertising on YouTube does affect consumer buying behavior. 
+The average income of the test group is higher. Such demographic data may make it easier for the test group to buy.
+Yes, I believe the result is valid. The p-value is small enough to support the conclusion.
+

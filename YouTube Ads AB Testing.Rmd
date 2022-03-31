@@ -1,14 +1,3 @@
----
-title: 'SDGB-7844: Homework #5 - Hypothesis Testing & Confidence Intervals'
-author: "Ran Tian"
-fordham_id_number: A17684252
-fordham_email: rtian12@fordham.edu
-date: "Dec 10 2020"
-output:
-  html_document: default
-  pdf_document: default
----
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
